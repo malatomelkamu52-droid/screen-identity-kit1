@@ -7,6 +7,7 @@ import {
   DirectionalLight,
   Group,
   LineBasicMaterial,
+  LineLoop,
   LineSegments,
   Mesh,
   MeshBasicMaterial,
@@ -772,6 +773,135 @@ function BodyRig({
   );
 }
 
+
+/* ---------------- Heliocentric orrery (Sun view) ---------------- */
+
+/**
+ * Scene-scaled orbital elements for the eight planets. Semi-major axes are the
+ * real values in AU, compressed logarithmically so the outer planets stay in
+ * frame; eccentricities and sidereal periods are the real IAU values.
+ */
+const ORRERY: { id: BodyId; au: number; ecc: number; years: number; size: number; color: string }[] = [
+  { id: "Mercury", au: 0.387, ecc: 0.2056, years: 0.241, size: 0.16, color: "#b6b2ab" },
+  { id: "Venus", au: 0.723, ecc: 0.0068, years: 0.615, size: 0.26, color: "#e0b473" },
+  { id: "Earth", au: 1.0, ecc: 0.0167, years: 1.0, size: 0.28, color: "#5aa9e6" },
+  { id: "Mars", au: 1.524, ecc: 0.0934, years: 1.881, size: 0.2, color: "#d1603d" },
+  { id: "Jupiter", au: 5.203, ecc: 0.0489, years: 11.86, size: 0.62, color: "#d8b48a" },
+  { id: "Saturn", au: 9.537, ecc: 0.0565, years: 29.45, size: 0.55, color: "#e3cb95" },
+  { id: "Uranus", au: 19.19, ecc: 0.0463, years: 84.02, size: 0.4, color: "#93d6e0" },
+  { id: "Neptune", au: 30.07, ecc: 0.0095, years: 164.8, size: 0.39, color: "#5f7ff0" },
+];
+
+/** Log-compressed AU -> scene radius so Mercury and Neptune share one frame. */
+function orbitRadius(au: number) {
+  return 5.5 + Math.log10(au / 0.35) * 17;
+}
+
+function OrbitEllipse({ a, ecc, highlight }: { a: number; ecc: number; highlight: boolean }) {
+  const geometry = useMemo(() => {
+    const b = a * Math.sqrt(1 - ecc * ecc);
+    const curve = new THREE.EllipseCurve(-a * ecc, 0, a, b, 0, Math.PI * 2, false, 0);
+    const pts = curve.getPoints(256).map((p) => new THREE.Vector3(p.x, 0, p.y));
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, [a, ecc]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <LineLoop geometry={geometry} frustumCulled={false}>
+      <LineBasicMaterial
+        color={highlight ? "#FF8C00" : "#F5A623"}
+        transparent
+        opacity={highlight ? 0.55 : 0.22}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </LineLoop>
+  );
+}
+
+function OrreryPlanet({
+  spec,
+  playing,
+  speed,
+  onSelect,
+}: {
+  spec: (typeof ORRERY)[number];
+  playing: boolean;
+  speed: number;
+  onSelect: (b: BodyId) => void;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const angle = useRef(Math.random() * Math.PI * 2);
+  const a = orbitRadius(spec.au);
+  const b = a * Math.sqrt(1 - spec.ecc * spec.ecc);
+
+  useFrame((_, dt) => {
+    if (playing) angle.current += (dt * speed * 0.35) / spec.years;
+    if (ref.current) {
+      ref.current.position.set(
+        Math.cos(angle.current) * a - a * spec.ecc,
+        0,
+        Math.sin(angle.current) * b,
+      );
+    }
+  });
+
+  return (
+    <Group ref={ref}>
+      <Mesh
+        onClick={(e: { stopPropagation: () => void }) => {
+          e.stopPropagation();
+          onSelect(spec.id);
+        }}
+      >
+        <SphereGeometry args={[spec.size, 24, 24]} />
+        <MeshStandardMaterial color={spec.color} roughness={0.85} metalness={0.05} />
+      </Mesh>
+      <Mesh>
+        <SphereGeometry args={[spec.size * 2.4, 16, 16]} />
+        <MeshBasicMaterial
+          color="#F5A623"
+          transparent
+          opacity={0.1}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </Mesh>
+      <SafeHtml center distanceFactor={70} zIndexRange={[7, 0]}>
+        <button className="orrery-label" onClick={() => onSelect(spec.id)}>
+          {spec.id}
+        </button>
+      </SafeHtml>
+    </Group>
+  );
+}
+
+/** Oblique heliocentric view: every planet on its own ellipse around the Sun. */
+function Orrery({
+  playing,
+  speed,
+  onSelect,
+}: {
+  playing: boolean;
+  speed: number;
+  onSelect: (b: BodyId) => void;
+}) {
+  return (
+    <Group>
+      <PointLight position={[0, 0, 0]} intensity={340} distance={0} color="#ffd7a0" />
+      {ORRERY.map((spec) => (
+        <Group key={spec.id}>
+          <OrbitEllipse
+            a={orbitRadius(spec.au)}
+            ecc={spec.ecc}
+            highlight={spec.id === "Earth"}
+          />
+          <OrreryPlanet spec={spec} playing={playing} speed={speed} onSelect={onSelect} />
+        </Group>
+      ))}
+    </Group>
+  );
+}
+
 /* ---------------- Camera interpolation & fly-to ---------------- */
 
 function CameraRig({
@@ -797,9 +927,20 @@ function CameraRig({
   const zero = useRef(new THREE.Vector3());
 
   useEffect(() => {
+    if (body === "Sun") {
+      // Oblique heliocentric stand-off so all eight orbits stay in frame.
+      const d = 118;
+      const dir = new THREE.Vector3(0.32, 0.62, 0.72).normalize();
+      camera.position.copy(dir.multiplyScalar(d * 1.25));
+      camera.lookAt(0, 0, 0);
+      distTarget.current = d;
+      recenter.current = true;
+      return;
+    }
     const r = BODIES[body].radius;
     distTarget.current = rideAlong ? r * 1.55 : r * 3.4;
     recenter.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [body, rideAlong]);
 
   // Floating +/- buttons: step the orbit distance and let the frame loop lerp there.
@@ -1018,6 +1159,13 @@ function StarField() {
   );
 }
 
+
+/** Warm the catalogue colour toward solar gold / aerospace orange for HUD markers. */
+function warmTint(hex: string) {
+  const c = new THREE.Color(hex);
+  return c.lerp(new THREE.Color("#FF9A2E"), 0.55).getStyle();
+}
+
 /**
  * Catalogued stars and deep-space objects rendered as clickable sky markers
  * with scientific HUD annotations (tick + connector line + name block).
@@ -1041,10 +1189,18 @@ function NamedStars({
     // Fade the labels while the user is orbiting, restore them when the view settles.
     const moved = camera.position.distanceTo(prev.current);
     prev.current.copy(camera.position);
-    const want = moved > 0.02 ? 0.3 : 1;
+    // Close-up planetary inspection (camera tucked in near the body) shrinks and
+    // fades the deep-sky annotations so they never clutter the surface view.
+    const dist = camera.position.length();
+    const proximity = THREE.MathUtils.clamp((dist - 3) / 9, 0, 1);
+    const want = (moved > 0.02 ? 0.3 : 1) * (0.12 + proximity * 0.88);
     fade.current = THREE.MathUtils.damp(fade.current, want, 5, dt);
+    const scale = 0.62 + proximity * 0.38;
     labels.current.forEach((el) => {
-      if (el) el.style.opacity = String(fade.current);
+      if (!el) return;
+      el.style.opacity = String(fade.current);
+      el.style.setProperty("--sky-label-scale", scale.toFixed(3));
+      el.style.pointerEvents = fade.current < 0.25 ? "none" : "auto";
     });
     if (pulse.current) {
       const s = 1 + Math.sin(clock.elapsedTime * 2) * 0.16;
@@ -1059,6 +1215,7 @@ function NamedStars({
         const isStar = s.kind === "star";
         const scale = isStar ? 1.9 - Math.min(s.mag, 2) * 0.28 : 2.2;
         const selected = selectedId === s.id;
+        const tint = warmTint(s.color);
         return (
           <Group key={s.id} position={p}>
             <Mesh
@@ -1068,12 +1225,12 @@ function NamedStars({
               }}
             >
               <SphereGeometry args={[(isStar ? 1.5 : 3.2) * scale, 12, 12]} />
-              <MeshBasicMaterial color={s.color} toneMapped={false} />
+              <MeshBasicMaterial color={tint} toneMapped={false} />
             </Mesh>
             <Mesh>
               <SphereGeometry args={[(isStar ? 6.5 : 11) * scale, 16, 16]} />
               <MeshBasicMaterial
-                color={s.color}
+                color={tint}
                 transparent
                 opacity={selected ? 0.3 : 0.14}
                 toneMapped={false}
@@ -1085,7 +1242,7 @@ function NamedStars({
               <Mesh ref={pulse}>
                 <SphereGeometry args={[16 * scale, 20, 20]} />
                 <MeshBasicMaterial
-                  color={s.color}
+                  color={tint}
                   transparent
                   opacity={0.12}
                   toneMapped={false}
@@ -1143,7 +1300,7 @@ function ConstellationLines() {
     <Group>
       <LineSegments geometry={geometry} frustumCulled={false}>
         <LineBasicMaterial
-          color="#5fb8ff"
+          color="#F5A623"
           transparent
           opacity={0.22}
           depthWrite={false}
@@ -1258,6 +1415,9 @@ export default function CelestialScene(props: SceneProps) {
         selectedId={selectedSkyId}
         onSelect={(id) => onSkySelect?.(id)}
       />
+      {body === "Sun" && (
+        <Orrery playing={props.playing} speed={props.speed} onSelect={props.onBodyClick} />
+      )}
       <BodyRig
         {...props}
         sunDir={sunDir}
