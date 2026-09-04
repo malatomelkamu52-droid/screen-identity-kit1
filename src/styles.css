@@ -54,26 +54,26 @@
   --card-foreground: oklch(0.96 0.005 250);
   --popover: oklch(0.09 0.016 265);
   --popover-foreground: oklch(0.96 0.005 250);
-  --primary: oklch(0.82 0.13 216);
-  --primary-foreground: oklch(0.11 0.02 250);
+  --primary: oklch(0.79 0.15 72);
+  --primary-foreground: oklch(0.14 0.02 60);
   --secondary: oklch(1 0 0 / 0.05);
   --secondary-foreground: oklch(0.95 0.005 250);
   --muted: oklch(1 0 0 / 0.06);
   --muted-foreground: oklch(0.68 0.012 258);
-  --accent: oklch(0.82 0.13 216);
-  --accent-foreground: oklch(0.11 0.02 250);
+  --accent: oklch(0.79 0.15 72);
+  --accent-foreground: oklch(0.14 0.02 60);
   --destructive: oklch(0.66 0.19 22);
   --destructive-foreground: oklch(0.98 0.005 250);
   --border: oklch(1 0 0 / 0.08);
   --input: oklch(1 0 0 / 0.1);
-  --ring: oklch(0.82 0.13 216);
-  /* Instrument azure — primary HUD accent */
-  --gold: oklch(0.82 0.13 216);
-  --cyan: oklch(0.86 0.12 200);
+  --ring: oklch(0.79 0.15 72);
+  /* Solar gold / aerospace orange — primary HUD accent (#F5A623 / #FF8C00) */
+  --gold: oklch(0.79 0.15 72);
+  --cyan: oklch(0.75 0.17 58);
   --signal: oklch(0.8 0.17 150);
   --shadow-hud: 0 24px 70px oklch(0 0 0 / 0.65);
-  --glow-gold: 0 0 22px oklch(0.82 0.13 216 / 0.38);
-  --glow-cyan: 0 0 22px oklch(0.78 0.1 210 / 0.3);
+  --glow-gold: 0 0 22px oklch(0.79 0.15 72 / 0.4);
+  --glow-cyan: 0 0 22px oklch(0.75 0.17 58 / 0.32);
   --gradient-void: radial-gradient(
       ellipse 90% 60% at 50% -10%,
       oklch(0.16 0.035 262 / 0.7) 0%,
@@ -167,7 +167,7 @@
   height: 5px;
   border-radius: 50%;
   background: var(--cyan);
-  box-shadow: 0 0 0 3px oklch(0.82 0.13 216 / 0.2), var(--glow-gold);
+  box-shadow: 0 0 0 3px oklch(0.79 0.15 72 / 0.2), var(--glow-gold);
 }
 
 .hud-scroll::-webkit-scrollbar {
@@ -217,7 +217,7 @@
   width: 26px;
   height: 1px;
   margin-top: 7px;
-  background: linear-gradient(90deg, oklch(0.86 0.12 200 / 0.75), oklch(0.86 0.12 200 / 0.15));
+  background: linear-gradient(90deg, oklch(0.79 0.15 72 / 0.8), oklch(0.79 0.15 72 / 0.15));
 }
 
 .sky-annotation-body {
@@ -267,7 +267,7 @@
   font-size: 9px;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: oklch(0.82 0.13 216 / 0.55);
+  color: oklch(0.79 0.15 72 / 0.6);
   pointer-events: none;
   white-space: nowrap;
 }
