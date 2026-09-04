@@ -787,7 +787,7 @@ export default function Dashboard() {
 
       {/* UNIVERSE FACT CARD */}
       {!skyObject && !selected && (
-        <div className={`pointer-events-auto absolute right-4 top-[86px] z-30 hidden xl:block ${hud}`}>
+        <div className={`pointer-events-auto absolute bottom-4 left-4 z-30 hidden 2xl:block ${hud}`}>
           <UniverseFact
             onExplore={() => {
               setConstellations(true);
