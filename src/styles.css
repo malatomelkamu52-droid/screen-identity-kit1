@@ -208,7 +208,9 @@
   cursor: pointer;
   text-align: left;
   white-space: nowrap;
-  transform: translate(14px, -18px);
+  --sky-label-scale: 1;
+  transform: translate(14px, -18px) scale(var(--sky-label-scale));
+  transform-origin: left center;
   transition: opacity 0.25s ease;
 }
 
