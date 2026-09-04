@@ -1018,6 +1018,13 @@ function StarField() {
   );
 }
 
+
+/** Warm the catalogue colour toward solar gold / aerospace orange for HUD markers. */
+function warmTint(hex: string) {
+  const c = new THREE.Color(hex);
+  return c.lerp(new THREE.Color("#FF9A2E"), 0.55).getStyle();
+}
+
 /**
  * Catalogued stars and deep-space objects rendered as clickable sky markers
  * with scientific HUD annotations (tick + connector line + name block).
@@ -1041,10 +1048,18 @@ function NamedStars({
     // Fade the labels while the user is orbiting, restore them when the view settles.
     const moved = camera.position.distanceTo(prev.current);
     prev.current.copy(camera.position);
-    const want = moved > 0.02 ? 0.3 : 1;
+    // Close-up planetary inspection (camera tucked in near the body) shrinks and
+    // fades the deep-sky annotations so they never clutter the surface view.
+    const dist = camera.position.length();
+    const proximity = THREE.MathUtils.clamp((dist - 3) / 9, 0, 1);
+    const want = (moved > 0.02 ? 0.3 : 1) * (0.12 + proximity * 0.88);
     fade.current = THREE.MathUtils.damp(fade.current, want, 5, dt);
+    const scale = 0.62 + proximity * 0.38;
     labels.current.forEach((el) => {
-      if (el) el.style.opacity = String(fade.current);
+      if (!el) return;
+      el.style.opacity = String(fade.current);
+      el.style.setProperty("--sky-label-scale", scale.toFixed(3));
+      el.style.pointerEvents = fade.current < 0.25 ? "none" : "auto";
     });
     if (pulse.current) {
       const s = 1 + Math.sin(clock.elapsedTime * 2) * 0.16;
@@ -1059,6 +1074,7 @@ function NamedStars({
         const isStar = s.kind === "star";
         const scale = isStar ? 1.9 - Math.min(s.mag, 2) * 0.28 : 2.2;
         const selected = selectedId === s.id;
+        const tint = warmTint(s.color);
         return (
           <Group key={s.id} position={p}>
             <Mesh
@@ -1068,12 +1084,12 @@ function NamedStars({
               }}
             >
               <SphereGeometry args={[(isStar ? 1.5 : 3.2) * scale, 12, 12]} />
-              <MeshBasicMaterial color={s.color} toneMapped={false} />
+              <MeshBasicMaterial color={tint} toneMapped={false} />
             </Mesh>
             <Mesh>
               <SphereGeometry args={[(isStar ? 6.5 : 11) * scale, 16, 16]} />
               <MeshBasicMaterial
-                color={s.color}
+                color={tint}
                 transparent
                 opacity={selected ? 0.3 : 0.14}
                 toneMapped={false}
@@ -1085,7 +1101,7 @@ function NamedStars({
               <Mesh ref={pulse}>
                 <SphereGeometry args={[16 * scale, 20, 20]} />
                 <MeshBasicMaterial
-                  color={s.color}
+                  color={tint}
                   transparent
                   opacity={0.12}
                   toneMapped={false}
@@ -1143,7 +1159,7 @@ function ConstellationLines() {
     <Group>
       <LineSegments geometry={geometry} frustumCulled={false}>
         <LineBasicMaterial
-          color="#5fb8ff"
+          color="#F5A623"
           transparent
           opacity={0.22}
           depthWrite={false}
