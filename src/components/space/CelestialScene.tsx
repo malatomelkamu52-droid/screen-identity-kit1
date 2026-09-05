@@ -802,21 +802,12 @@ function CameraRig({
   const zero = useRef(new THREE.Vector3());
 
   useEffect(() => {
-    if (body === "Sun") {
-      // Oblique heliocentric stand-off so all eight orbits stay in frame.
-      const d = 118;
-      const dir = new THREE.Vector3(0.32, 0.62, 0.72).normalize();
-      camera.position.copy(dir.multiplyScalar(d * 1.25));
-      camera.lookAt(0, 0, 0);
-      distTarget.current = d;
-      recenter.current = true;
-      return;
-    }
     const r = BODIES[body].radius;
     distTarget.current = rideAlong ? r * 1.55 : r * 3.4;
     recenter.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [body, rideAlong]);
+
 
   // Floating +/- buttons: step the orbit distance and let the frame loop lerp there.
   useEffect(() => {
@@ -1290,9 +1281,6 @@ export default function CelestialScene(props: SceneProps) {
         selectedId={selectedSkyId}
         onSelect={(id) => onSkySelect?.(id)}
       />
-      {body === "Sun" && (
-        <Orrery playing={props.playing} speed={props.speed} onSelect={props.onBodyClick} />
-      )}
       <BodyRig
         {...props}
         sunDir={sunDir}
