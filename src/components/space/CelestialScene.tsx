@@ -7,8 +7,8 @@ import {
   DirectionalLight,
   Group,
   LineBasicMaterial,
-  LineLoop,
   LineSegments,
+
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -32,6 +32,8 @@ import {
   type SurfacePin,
 } from "@/lib/space-data";
 import { CONSTELLATIONS, SKY_OBJECTS } from "@/lib/deep-sky";
+import milkyWayAsset from "@/assets/tex/milkyway.json";
+
 
 export interface SceneLayers {
   landingSites: boolean;
