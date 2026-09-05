@@ -876,68 +876,21 @@ function raDecToVec3(raHours: number, decDeg: number, r: number) {
   );
 }
 
-/** Procedural Milky Way / cosmic dust band painted onto a canvas texture. */
+/**
+ * Photorealistic Milky Way skybox: ESO / S. Brunier 360-degree deep-sky
+ * panorama (equirectangular), mapped to the inside of the sky sphere.
+ */
 function useMilkyWayTexture() {
-  return useMemo(() => {
-    const w = 2048;
-    const h = 1024;
-    const c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
-    const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#03050c";
-    ctx.fillRect(0, 0, w, h);
-
-    // Warped galactic band with soft, clumpy nebulosity.
-    const clumps = 900;
-    for (let i = 0; i < clumps; i++) {
-      const x = Math.random() * w;
-      const band =
-        h * 0.5 + Math.sin((x / w) * Math.PI * 2 + 0.6) * h * 0.16 + (Math.random() - 0.5) * h * 0.13;
-      const rad = 40 + Math.random() * 190;
-      const a = 0.012 + Math.random() * 0.05;
-      const g = ctx.createRadialGradient(x, band, 0, x, band, rad);
-      const tint = Math.random();
-      const col =
-        tint > 0.72 ? "120, 150, 220" : tint > 0.4 ? "190, 190, 215" : "215, 175, 140";
-      g.addColorStop(0, `rgba(${col}, ${a})`);
-      g.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, band, rad, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Dark dust lanes cutting through the band.
-    for (let i = 0; i < 260; i++) {
-      const x = Math.random() * w;
-      const band = h * 0.5 + Math.sin((x / w) * Math.PI * 2 + 0.6) * h * 0.16 + (Math.random() - 0.5) * h * 0.07;
-      const rad = 20 + Math.random() * 110;
-      const g = ctx.createRadialGradient(x, band, 0, x, band, rad);
-      g.addColorStop(0, `rgba(2, 3, 8, ${0.1 + Math.random() * 0.3})`);
-      g.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, band, rad, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Unresolved background star haze
-    for (let i = 0; i < 14000; i++) {
-      const x = Math.random() * w;
-      const near = Math.random() < 0.65;
-      const y = near
-        ? h * 0.5 + Math.sin((x / w) * Math.PI * 2 + 0.6) * h * 0.16 + (Math.random() - 0.5) * h * 0.2
-        : Math.random() * h;
-      ctx.fillStyle = `rgba(255, 250, 240, ${0.03 + Math.random() * 0.16})`;
-      ctx.fillRect(x, y, 1, 1);
-    }
-
-    const tex = new THREE.CanvasTexture(c);
+  const tex = useTexture(milkyWayAsset.url);
+  useEffect(() => {
     tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
-  }, []);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.anisotropy = 4;
+    tex.needsUpdate = true;
+  }, [tex]);
+  return tex;
 }
+
 
 const starVert = /* glsl */ `
   attribute float size;
