@@ -31,7 +31,6 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
       fs.createReadStream(filePath).pipe(res);
     } else {
-      // Fallback to SPA index.html
       const indexPath = path.join(staticDir, "index.html");
       fs.readFile(indexPath, (readErr, content) => {
         if (readErr) {
