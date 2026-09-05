@@ -273,3 +273,21 @@
   pointer-events: none;
   white-space: nowrap;
 }
+
+.orrery-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: oklch(0.79 0.15 72 / 0.85);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transform: translateY(-18px);
+}
+
+.orrery-label:hover {
+  color: var(--gold);
+  text-shadow: var(--glow-gold);
+}

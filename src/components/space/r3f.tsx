@@ -38,6 +38,7 @@ export const SceneColor = intrinsic("color");
 export const BufferGeometry = intrinsic("bufferGeometry");
 export const PointsMaterial = intrinsic("pointsMaterial");
 export const LineSegments = intrinsic("lineSegments");
+export const LineLoop = intrinsic("lineLoop");
 export const LineBasicMaterial = intrinsic("lineBasicMaterial");
 
 export const SafeStars = wrap(Stars as any);
