@@ -1162,7 +1162,13 @@ function DeepSpace({
     <Group rotation={[0, 0, (-60.2 * Math.PI) / 180]}>
       <Mesh frustumCulled={false}>
         <SphereGeometry args={[SKY_R * 1.35, 64, 64]} />
-        <MeshBasicMaterial map={tex} side={THREE.BackSide} depthWrite={false} toneMapped={false} />
+        <MeshBasicMaterial
+          map={tex}
+          color="#9aa0b4"
+          side={THREE.BackSide}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </Mesh>
       <StarField />
       {showConstellations && <ConstellationLines />}
