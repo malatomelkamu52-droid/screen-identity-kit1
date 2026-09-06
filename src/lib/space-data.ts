@@ -1,20 +1,4 @@
-import sunmap from "@/assets/tex/sunmap.json";
-import mercurymap from "@/assets/tex/mercurymap.json";
-import venusmap from "@/assets/tex/venusmap.json";
-import earthDay from "@/assets/tex/earth-blue-marble.json";
-import earthNight from "@/assets/tex/earth-night.json";
-import earthSpec from "@/assets/tex/earthspec1k.json";
-import earthClouds from "@/assets/tex/earthcloudmap.json";
-import moonmap from "@/assets/tex/moonmap1k.json";
-import moonbump from "@/assets/tex/moonbump1k.json";
-import marsmap from "@/assets/tex/marsmap1k.json";
-import marsbump from "@/assets/tex/marsbump1k.json";
-import jupitermap from "@/assets/tex/jupitermap.json";
-import saturnmap from "@/assets/tex/saturnmap.json";
-import saturnring from "@/assets/tex/saturnringcolor.json";
-import uranusmap from "@/assets/tex/uranusmap.json";
-import uranusring from "@/assets/tex/uranusringcolour.json";
-import neptunemap from "@/assets/tex/neptunemap.json";
+import { TEXTURES } from "@/lib/textures";
 
 export type BodyId =
   | "Sun"
@@ -75,7 +59,7 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 2.1,
     tilt: 7.25,
     spin: 0.03,
-    map: sunmap.url,
+    map: TEXTURES.sun,
     roughness: 1,
     metalness: 0,
     emissive: true,
@@ -93,7 +77,7 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 1.15,
     tilt: 0.03,
     spin: 0.04,
-    map: mercurymap.url,
+    map: TEXTURES.mercury,
     roughness: 0.95,
     metalness: 0.05,
     accent: "#b6b2ab",
@@ -110,7 +94,7 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 1.42,
     tilt: 177.36,
     spin: -0.02,
-    map: venusmap.url,
+    map: TEXTURES.venus,
     roughness: 0.9,
     metalness: 0,
     accent: "#e0b473",
@@ -127,7 +111,7 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 1.5,
     tilt: 23.44,
     spin: 0.08,
-    map: earthDay.url,
+    map: TEXTURES.earthDay,
     roughness: 0.65,
     metalness: 0.1,
     accent: "#3b9dff",
@@ -144,8 +128,8 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 1.05,
     tilt: 6.68,
     spin: 0.02,
-    map: moonmap.url,
-    bump: moonbump.url,
+    map: TEXTURES.moon,
+    bump: TEXTURES.moonBump,
     bumpScale: 0.035,
     roughness: 1,
     metalness: 0,
@@ -163,8 +147,8 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 1.3,
     tilt: 25.19,
     spin: 0.075,
-    map: marsmap.url,
-    bump: marsbump.url,
+    map: TEXTURES.mars,
+    bump: TEXTURES.marsBump,
     bumpScale: 0.045,
     roughness: 0.98,
     metalness: 0,
@@ -182,7 +166,7 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 2.0,
     tilt: 3.13,
     spin: 0.16,
-    map: jupitermap.url,
+    map: TEXTURES.jupiter,
     roughness: 0.85,
     metalness: 0,
     accent: "#d9a26b",
@@ -199,10 +183,10 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 1.75,
     tilt: 26.73,
     spin: 0.14,
-    map: saturnmap.url,
+    map: TEXTURES.saturn,
     roughness: 0.85,
     metalness: 0,
-    ring: { map: saturnring.url, inner: 2.3, outer: 4.0 },
+    ring: { map: TEXTURES.saturnRing, inner: 2.3, outer: 4.0 },
     accent: "#e2c68f",
     diameterKm: "116,460 km",
     gravity: "10.44 m/s²",
@@ -217,10 +201,10 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 1.6,
     tilt: 97.77,
     spin: -0.1,
-    map: uranusmap.url,
+    map: TEXTURES.uranus,
     roughness: 0.8,
     metalness: 0,
-    ring: { map: uranusring.url, inner: 2.0, outer: 2.9 },
+    ring: { map: TEXTURES.uranusRing, inner: 2.0, outer: 2.9 },
     accent: "#7ad6e0",
     diameterKm: "50,724 km",
     gravity: "8.87 m/s²",
@@ -235,7 +219,7 @@ export const BODIES: Record<BodyId, BodyInfo> = {
     radius: 1.58,
     tilt: 28.32,
     spin: 0.11,
-    map: neptunemap.url,
+    map: TEXTURES.neptune,
     roughness: 0.8,
     metalness: 0,
     accent: "#4f6fe0",
@@ -250,10 +234,10 @@ export const BODIES: Record<BodyId, BodyInfo> = {
 };
 
 export const EARTH_TEXTURES = {
-  day: earthDay.url,
-  night: earthNight.url,
-  spec: earthSpec.url,
-  clouds: earthClouds.url,
+  day: TEXTURES.earthDay,
+  night: TEXTURES.earthNight,
+  spec: TEXTURES.earthSpec,
+  clouds: TEXTURES.earthClouds,
 };
 
 export interface SurfacePin {

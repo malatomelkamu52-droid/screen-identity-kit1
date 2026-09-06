@@ -30,6 +30,7 @@ import {
   type SurfacePin,
 } from "@/lib/space-data";
 import { CONSTELLATIONS, SKY_OBJECTS } from "@/lib/deep-sky";
+import { TEXTURES } from "@/lib/textures";
 import { useTexture } from "@react-three/drei";
 
 export interface SceneLayers {
@@ -217,7 +218,7 @@ function Pins({
         const p = latLonToVec3(pin.lat, pin.lon, radius * 1.01);
         return (
           <Group key={pin.id} position={p}>
-            <Mesh onClick={(e) => { e.stopPropagation(); onSelect(pin); }}>
+            <Mesh onClick={(e: any) => { e.stopPropagation(); onSelect(pin); }}>
               <SphereGeometry args={[radius * 0.025, 12, 12]} />
               <MeshBasicMaterial color="#FACC15" toneMapped={false} />
             </Mesh>
@@ -267,7 +268,7 @@ function Orbiters({
         return (
           <Group key={a.id} rotation={[((a.inclination ?? 0) * Math.PI) / 180, ((a.phase ?? 0) * Math.PI) / 180, 0]}>
             <Group ref={(el) => { refs.current[a.id] = el; }}>
-              <Mesh position={[r, 0, 0]} onClick={(e) => { e.stopPropagation(); onAssetSelect(a); }}>
+              <Mesh position={[r, 0, 0]} onClick={(e: any) => { e.stopPropagation(); onAssetSelect(a); }}>
                 <SphereGeometry args={[radius * 0.025, 12, 12]} />
                 <MeshBasicMaterial color={a.accent ?? "#93c5fd"} toneMapped={false} />
               </Mesh>
@@ -324,6 +325,26 @@ function BodyRig({
   );
 }
 
+/* ---------------- Sky Background ---------------- */
+
+function SkyDome() {
+  const tex = useTexture(TEXTURES.starfield);
+
+  useEffect(() => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.needsUpdate = true;
+  }, [tex]);
+
+  return (
+    <Mesh scale={[-1, 1, 1]}>
+      <SphereGeometry args={[800, 64, 64]} />
+      <MeshBasicMaterial map={tex} side={THREE.BackSide} depthWrite={false} toneMapped={false} />
+    </Mesh>
+  );
+}
+
 /* ---------------- Star Field ---------------- */
 
 function StarField() {
@@ -359,9 +380,9 @@ export default function CelestialScene(props: SceneProps) {
   const sunDir = useMemo(() => sunVector(sunAzimuth, sunElevation), [sunAzimuth, sunElevation]);
 
   return (
-    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden bg-slate-950">
+    <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-950">
       <Canvas
-        camera={{ position: [0, 1.4, 5], fov: 45, near: 0.01, far: 2000 }}
+        camera={{ position: [0, 1.2, 4.5], fov: 45, near: 0.01, far: 2000 }}
         gl={{ antialias: true, alpha: false }}
         onCreated={({ gl }) => {
           gl.setClearColor("#030712");
@@ -369,8 +390,9 @@ export default function CelestialScene(props: SceneProps) {
       >
         <AmbientLight intensity={0.8} />
         <DirectionalLight position={sunDir.clone().multiplyScalar(10).toArray()} intensity={2.2} color="#ffffff" />
-        
+
         <Suspense fallback={null}>
+          <SkyDome />
           <StarField />
           <BodyRig {...props} sunDir={sunDir} />
         </Suspense>
