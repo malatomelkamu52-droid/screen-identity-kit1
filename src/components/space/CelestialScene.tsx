@@ -389,9 +389,12 @@ const sunFrag = /* glsl */ `
   void main() {
     vec3 n = normalize(vNormalW);
     // Slowly churning convection cells + finer granulation
-    float cells = fbm(n * 5.5 + vec3(0.0, time * 0.045, 0.0));
-    float gran  = fbm(n * 22.0 - vec3(time * 0.11, 0.0, time * 0.07));
-    float plasma = mix(cells, gran, 0.42);
+    float cells = fbm(n * 6.5 + vec3(0.0, time * 0.045, 0.0));
+    float gran  = fbm(n * 30.0 - vec3(time * 0.11, 0.0, time * 0.07));
+    float fine  = fbm(n * 64.0 + vec3(time * 0.05, 0.0, 0.0));
+    float plasma = mix(cells, gran, 0.5) * 0.86 + fine * 0.18;
+    // Push contrast so convective granulation reads as texture, not haze
+    plasma = clamp((plasma - 0.42) * 1.85 + 0.45, 0.0, 1.4);
 
     float tex = texture2D(photoMap, vUv).r;
     plasma = plasma * 0.78 + tex * 0.34;
@@ -416,7 +419,7 @@ const sunFrag = /* glsl */ `
 
     // Limb darkening then a hot chromospheric rim right at the edge
     float mu = clamp(dot(n, normalize(vViewDir)), 0.0, 1.0);
-    color *= 0.42 + 0.58 * pow(mu, 0.55);
+    color *= 0.30 + 0.70 * pow(mu, 0.62);
     color += vec3(1.0, 0.45, 0.12) * pow(1.0 - mu, 3.2) * 0.85;
 
     gl_FragColor = vec4(color * 1.15, 1.0);
