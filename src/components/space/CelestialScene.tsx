@@ -8,7 +8,6 @@ import {
   Group,
   LineBasicMaterial,
   LineSegments,
-
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -32,8 +31,6 @@ import {
   type SurfacePin,
 } from "@/lib/space-data";
 import { CONSTELLATIONS, SKY_OBJECTS } from "@/lib/deep-sky";
-import milkyWayAsset from "@/assets/tex/milkyway.json";
-
 
 export interface SceneLayers {
   landingSites: boolean;
@@ -143,7 +140,7 @@ function EarthSurface({
       terminator: { value: terminator },
       heat: { value: heat },
     }),
-    [day, night, spec],
+    [day, night, spec, sunDir, terminator, heat],
   );
 
   useEffect(() => {
@@ -174,11 +171,6 @@ function EarthSurface({
 
 /* ---------------- Atmospheric Fresnel shell ---------------- */
 
-/**
- * Thin atmospheric shell. Physically this is a few-km haze layer, so it stays
- * faint (strength <= 0.12 by default) and only brightens where sunlight
- * actually grazes the limb — no neon outline on the night side.
- */
 function Atmosphere({
   radius,
   color,
@@ -197,7 +189,7 @@ function Atmosphere({
       sunDir: { value: (sunDir ?? new THREE.Vector3(1, 0, 0)).clone() },
       useSun: { value: sunDir ? 1 : 0 },
     }),
-    [color],
+    [color, strength, sunDir],
   );
 
   useEffect(() => {
@@ -232,7 +224,6 @@ function Atmosphere({
           varying vec3 vNormalV;
           varying vec3 vNormalW;
           void main() {
-            // Tight limb falloff: high exponent keeps the haze hugging the edge.
             float rim = pow(clamp(1.0 - abs(dot(vNormalV, vec3(0.0, 0.0, 1.0))), 0.0, 1.0), 6.0);
             float sun = mix(1.0, clamp(dot(normalize(vNormalW), normalize(sunDir)) * 0.5 + 0.5, 0.0, 1.0), useSun);
             float a = rim * strength * sun;
@@ -244,7 +235,7 @@ function Atmosphere({
   );
 }
 
-/* ---------------- Gas giants: limb darkening + Rayleigh rim ---------------- */
+/* ---------------- Gas giants ---------------- */
 
 const GAS_GIANTS: BodyId[] = ["Jupiter", "Saturn", "Uranus", "Neptune"];
 
@@ -274,18 +265,13 @@ const gasFrag = /* glsl */ `
     vec3 bands = texture2D(cloudMap, vUv).rgb;
     vec3 n = normalize(vNormalW);
     float ndl = dot(n, normalize(sunDir));
-    // Wrapped diffuse — gas envelopes scatter light slightly past the terminator,
-    // but the dark side stays genuinely dark for a crisp physical edge.
     float diffuse = clamp((ndl + 0.14) / 1.14, 0.0, 1.0);
     float lit = mix(0.9, diffuse * diffuse, terminator);
-    // Limb darkening (Minnaert-like): the disc dims towards the visible edge.
     float mu = clamp(dot(n, normalize(vViewDir)), 0.0, 1.0);
     float limb = pow(mu, 0.45);
     vec3 color = bands * lit * mix(1.0, limb, 0.9);
-    // Very faint forward scattering, confined to the sunlit limb only.
     float rim = pow(1.0 - mu, 6.0);
     color += rayleigh * rim * 0.06 * max(ndl, 0.0);
-    // Trace deep-atmosphere ambient so the night side is not crushed to pure black.
     color += bands * 0.015;
     color = mix(color, vec3(0.95, 0.35, 0.15) * (0.4 + lit), heat * 0.5);
     gl_FragColor = vec4(color, 1.0);
@@ -313,7 +299,7 @@ function GasGiantSurface({
       terminator: { value: terminator },
       heat: { value: heat },
     }),
-    [map, info.accent],
+    [map, info.accent, sunDir, terminator, heat],
   );
 
   useEffect(() => {
@@ -334,9 +320,7 @@ function GasGiantSurface({
   );
 }
 
-/* ---------------- Generic textured body ---------------- */
-
-/* ---------------- Photorealistic Sun (SDO / Solar Orbiter look) ---------------- */
+/* ---------------- Photorealistic Sun ---------------- */
 
 const sunVert = /* glsl */ `
   varying vec2 vUv;
@@ -358,7 +342,6 @@ const sunFrag = /* glsl */ `
   varying vec3 vNormalW;
   varying vec3 vViewDir;
 
-  // --- value noise / fbm for convective granulation ---
   vec3 hash3(vec3 p) {
     p = vec3(dot(p, vec3(127.1, 311.7, 74.7)),
              dot(p, vec3(269.5, 183.3, 246.1)),
@@ -388,18 +371,15 @@ const sunFrag = /* glsl */ `
 
   void main() {
     vec3 n = normalize(vNormalW);
-    // Slowly churning convection cells + finer granulation
     float cells = fbm(n * 6.5 + vec3(0.0, time * 0.045, 0.0));
     float gran  = fbm(n * 30.0 - vec3(time * 0.11, 0.0, time * 0.07));
     float fine  = fbm(n * 64.0 + vec3(time * 0.05, 0.0, 0.0));
     float plasma = mix(cells, gran, 0.5) * 0.86 + fine * 0.18;
-    // Push contrast so convective granulation reads as texture, not haze
     plasma = clamp((plasma - 0.42) * 1.85 + 0.45, 0.0, 1.4);
 
     float tex = texture2D(photoMap, vUv).r;
     plasma = plasma * 0.78 + tex * 0.34;
 
-    // Deep fiery orange-red plasma ramp
     vec3 deep  = vec3(0.22, 0.020, 0.002);
     vec3 mid   = vec3(0.72, 0.115, 0.010);
     vec3 hot   = vec3(0.98, 0.34, 0.045);
@@ -408,16 +388,12 @@ const sunFrag = /* glsl */ `
     color = mix(color, hot, smoothstep(0.52, 0.80, plasma));
     color = mix(color, white, smoothstep(0.86, 1.00, plasma) * 0.8);
 
-    // Bright supergranular flare veins
     float veins = pow(clamp(fbm(n * 9.0 + vec3(time * 0.09)) , 0.0, 1.0), 5.0);
     color += vec3(1.0, 0.42, 0.10) * veins * 1.2;
 
-
-    // Darker, cooler pores (sunspot-like)
     float pores = smoothstep(0.66, 0.90, fbm(n * 3.1 - vec3(time * 0.02)));
     color *= 1.0 - pores * 0.55;
 
-    // Limb darkening then a hot chromospheric rim right at the edge
     float mu = clamp(dot(n, normalize(vViewDir)), 0.0, 1.0);
     color *= 0.30 + 0.70 * pow(mu, 0.62);
     color += vec3(1.0, 0.45, 0.12) * pow(1.0 - mu, 3.2) * 0.85;
@@ -451,7 +427,6 @@ function SunSurface() {
         <SphereGeometry args={[r, 128, 128]} />
         <ShaderMaterial vertexShader={sunVert} fragmentShader={sunFrag} uniforms={uniforms} />
       </Mesh>
-      {/* Soft, wispy corona — one shell, additive, no hard neon ring */}
       <Mesh>
         <SphereGeometry args={[r * 1.9, 96, 96]} />
         <ShaderMaterial
@@ -504,8 +479,6 @@ function TexturedBody({ id, heat, terminator }: { id: BodyId; heat: number; term
   const map = maps[0]!;
   const bump = info.bump ? maps[1] : undefined;
 
-
-
   return (
     <Group>
       <Mesh castShadow>
@@ -521,7 +494,7 @@ function TexturedBody({ id, heat, terminator }: { id: BodyId; heat: number; term
           color={terminator < 0.5 ? "#ffffff" : "#e8eef7"}
         />
       </Mesh>
-      {(id === "Venus") && <Atmosphere radius={info.radius * 1.06} color={info.accent} />}
+      {id === "Venus" && <Atmosphere radius={info.radius * 1.06} color={info.accent} />}
     </Group>
   );
 }
@@ -561,7 +534,6 @@ function PlanetRing({ id }: { id: BodyId }) {
     </Mesh>
   );
 }
-
 
 /* ---------------- Surface pins ---------------- */
 
@@ -605,7 +577,6 @@ function Pins({
               <SphereGeometry args={[radius * 0.022, 12, 12]} />
               <MeshBasicMaterial color="#FACC15" toneMapped={false} />
             </Mesh>
-            {/* Soft coordinate halo so pins stay legible against bright terrain */}
             <Mesh>
               <SphereGeometry args={[radius * 0.05, 16, 16]} />
               <MeshBasicMaterial
@@ -624,15 +595,13 @@ function Pins({
               </button>
             </SafeHtml>
           </Group>
-
         );
       })}
     </Group>
   );
 }
 
-
-/* ---------------- Live orbiters (real hardware) ---------------- */
+/* ---------------- Live orbiters ---------------- */
 
 function Orbiters({
   body,
@@ -689,7 +658,6 @@ function Orbiters({
                 </button>
               </SafeHtml>
             </Group>
-            {/* Shell / orbit trace */}
             {isShell
               ? Array.from({ length: 5 }, (_, k) => (
                   <Mesh key={k} rotation={[-Math.PI / 2, 0, (k * Math.PI) / 5]}>
@@ -754,13 +722,11 @@ function BodyRig({
           <SunSurface />
         ) : body === "Earth" ? (
           <EarthSurface terminator={terminator} heat={heat} sunDir={sunDir} />
-
         ) : GAS_GIANTS.includes(body) ? (
           <GasGiantSurface id={body} sunDir={sunDir} terminator={terminator} heat={heat} />
         ) : (
           <TexturedBody id={body} heat={heat} terminator={terminator} />
         )}
-
         <Pins body={body} visible={showPins} onSelect={onPinSelect} onPosition={onAssetPosition} />
       </Group>
       {info.ring ? <PlanetRing id={body} /> : null}
@@ -777,8 +743,6 @@ function BodyRig({
     </Group>
   );
 }
-
-
 
 /* ---------------- Camera interpolation & fly-to ---------------- */
 
@@ -808,25 +772,20 @@ function CameraRig({
     const r = BODIES[body].radius;
     distTarget.current = rideAlong ? r * 1.55 : r * 3.4;
     recenter.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [body, rideAlong]);
 
-
-  // Floating +/- buttons: step the orbit distance and let the frame loop lerp there.
   useEffect(() => {
     if (!zoomRequest) return;
     const origin = controls.current?.target ?? zero.current;
     const current = camera.position.distanceTo(origin) || 1;
     distTarget.current = THREE.MathUtils.clamp(current * zoomRequest.factor, 1.2, 400);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoomRequest?.id]);
+  }, [zoomRequest]);
 
   useFrame((_, dt) => {
     const ctl = controls.current;
     const target = focus ? positions.current?.[focus] : null;
 
     if (target) {
-      // Smooth fly-to: lerp the orbit target onto the selected asset and close in.
       focusPoint.current.copy(target);
       if (ctl) ctl.target.lerp(focusPoint.current, Math.min(1, dt * 2.6));
       const stand = BODIES[body].radius * 2.1;
@@ -839,7 +798,6 @@ function CameraRig({
       return;
     }
 
-    // Only re-centre right after a body / mode change — otherwise panning stays free.
     if (recenter.current && ctl) {
       ctl.target.lerp(zero.current.set(0, 0, 0), Math.min(1, dt * 2.4));
       if (ctl.target.lengthSq() < 1e-5) {
@@ -863,11 +821,9 @@ function CameraRig({
   return null;
 }
 
-/* ---------------- Deep space: star field, Milky Way dust, named stars ---------------- */
+/* ---------------- Deep space ---------------- */
 
 const SKY_R = 700;
-
-/* Bright catalogued stars and deep-space objects come from @/lib/deep-sky. */
 
 function raDecToVec3(raHours: number, decDeg: number, r: number) {
   const ra = (raHours / 24) * Math.PI * 2;
@@ -879,21 +835,17 @@ function raDecToVec3(raHours: number, decDeg: number, r: number) {
   );
 }
 
-/**
- * Photorealistic Milky Way skybox: ESO / S. Brunier 360-degree deep-sky
- * panorama (equirectangular), mapped to the inside of the sky sphere.
- */
 function useMilkyWayTexture() {
-  const tex = useTexture(milkyWayAsset.url);
+  const tex = useTexture("https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/starfield.jpg");
   useEffect(() => {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
     tex.anisotropy = 4;
     tex.needsUpdate = true;
   }, [tex]);
   return tex;
 }
-
 
 const starVert = /* glsl */ `
   attribute float size;
@@ -934,7 +886,6 @@ function StarField() {
     const twinkle = new Float32Array(count);
     const c = new THREE.Color();
     for (let i = 0; i < count; i++) {
-      // Uniform direction, mildly concentrated toward the galactic band
       const u = Math.random() * 2 - 1;
       const theta = Math.random() * Math.PI * 2;
       const s = Math.sqrt(1 - u * u);
@@ -943,12 +894,10 @@ function StarField() {
       v.normalize().multiplyScalar(SKY_R * (0.92 + Math.random() * 0.08));
       pos.set([v.x, v.y, v.z], i * 3);
 
-      // Realistic magnitude distribution: mostly faint pinpoints
       const bright = Math.pow(Math.random(), 3.2);
       size[i] = 0.9 + bright * 4.4;
       twinkle[i] = Math.random();
 
-      // Spectral colours from cool red through hot blue-white
       const t = Math.random();
       const hue = t < 0.12 ? 0.06 : t < 0.32 ? 0.1 : t < 0.75 ? 0.14 : 0.58;
       c.setHSL(hue, t < 0.75 ? 0.35 : 0.42, 0.62 + bright * 0.3);
@@ -981,17 +930,11 @@ function StarField() {
   );
 }
 
-
-/** Warm the catalogue colour toward solar gold / aerospace orange for HUD markers. */
 function warmTint(hex: string) {
   const c = new THREE.Color(hex);
   return c.lerp(new THREE.Color("#FF9A2E"), 0.55).getStyle();
 }
 
-/**
- * Catalogued stars and deep-space objects rendered as clickable sky markers
- * with scientific HUD annotations (tick + connector line + name block).
- */
 function NamedStars({
   showLabels,
   selectedId,
@@ -1008,11 +951,8 @@ function NamedStars({
   const pulse = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }, dt) => {
-    // Fade the labels while the user is orbiting, restore them when the view settles.
     const moved = camera.position.distanceTo(prev.current);
     prev.current.copy(camera.position);
-    // Close-up planetary inspection (camera tucked in near the body) shrinks and
-    // fades the deep-sky annotations so they never clutter the surface view.
     const dist = camera.position.length();
     const proximity = THREE.MathUtils.clamp((dist - 3) / 9, 0, 1);
     const want = (moved > 0.02 ? 0.3 : 1) * (0.12 + proximity * 0.88);
@@ -1098,7 +1038,6 @@ function NamedStars({
   );
 }
 
-/** Constellation stick figures drawn on the celestial sphere. */
 function ConstellationLines() {
   const geometry = useMemo(() => {
     const pts: number[] = [];
@@ -1181,7 +1120,6 @@ function DeepSpace({
 }
 
 /* ---------------- Canvas ---------------- */
-
 
 export default function CelestialScene(props: SceneProps) {
   const {
@@ -1280,4 +1218,3 @@ export default function CelestialScene(props: SceneProps) {
     </Canvas>
   );
 }
-
