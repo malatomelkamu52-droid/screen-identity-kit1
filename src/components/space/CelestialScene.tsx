@@ -30,6 +30,7 @@ import {
   type SurfacePin,
 } from "@/lib/space-data";
 import { CONSTELLATIONS, SKY_OBJECTS } from "@/lib/deep-sky";
+import { TEXTURES } from "@/lib/textures";
 import { useTexture } from "@react-three/drei";
 
 export interface SceneLayers {
