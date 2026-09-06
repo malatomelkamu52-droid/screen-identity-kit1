@@ -217,7 +217,7 @@ function Pins({
         const p = latLonToVec3(pin.lat, pin.lon, radius * 1.01);
         return (
           <Group key={pin.id} position={p}>
-            <Mesh onClick={(e) => { e.stopPropagation(); onSelect(pin); }}>
+            <Mesh onClick={(e: any) => { e.stopPropagation(); onSelect(pin); }}>
               <SphereGeometry args={[radius * 0.025, 12, 12]} />
               <MeshBasicMaterial color="#FACC15" toneMapped={false} />
             </Mesh>
@@ -267,7 +267,7 @@ function Orbiters({
         return (
           <Group key={a.id} rotation={[((a.inclination ?? 0) * Math.PI) / 180, ((a.phase ?? 0) * Math.PI) / 180, 0]}>
             <Group ref={(el) => { refs.current[a.id] = el; }}>
-              <Mesh position={[r, 0, 0]} onClick={(e) => { e.stopPropagation(); onAssetSelect(a); }}>
+              <Mesh position={[r, 0, 0]} onClick={(e: any) => { e.stopPropagation(); onAssetSelect(a); }}>
                 <SphereGeometry args={[radius * 0.025, 12, 12]} />
                 <MeshBasicMaterial color={a.accent ?? "#93c5fd"} toneMapped={false} />
               </Mesh>
