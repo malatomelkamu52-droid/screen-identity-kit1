@@ -1,4 +1,3 @@
-import { ClientOnly } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
@@ -30,7 +29,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ACTIVE_COUNTS,
   BODIES,
@@ -48,6 +47,7 @@ import {
 } from "@/lib/space-data";
 import type { SearchResult } from "@/lib/space-types";
 import type { SceneLayers } from "./CelestialScene";
+import CelestialScene from "./CelestialScene";
 import { SKY_BY_ID } from "@/lib/deep-sky";
 import SkyIntelPanel from "./SkyIntelPanel";
 import UniverseFact from "./UniverseFact";
@@ -56,8 +56,6 @@ import GlobalSearch from "./GlobalSearch";
 import StatusStrip from "./StatusStrip";
 import { OrbitalBrandHeader } from "./OrbitalLogo";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-const CelestialScene = lazy(() => import("./CelestialScene"));
 
 const LAYER_META: { key: keyof SceneLayers; label: string; Icon: typeof MapPin }[] = [
   { key: "terminator", label: "Sun / Terminator", Icon: Sun },
@@ -69,7 +67,6 @@ const LAYER_META: { key: keyof SceneLayers; label: string; Icon: typeof MapPin }
 
 const SPEEDS = [1, 10, 100];
 
-/** Navigation hub taxonomy — celestial items drive the 3D scene, the rest open Intel modals. */
 const HUB_GROUPS: { title: string; items: string[] }[] = [
   {
     title: "CELESTIAL WORLDS",
@@ -117,12 +114,10 @@ export default function Dashboard() {
   const [gazetteerOpen, setGazetteerOpen] = useState(true);
   const [profileOpen, setProfileOpen] = useState(true);
   const isMobile = useIsMobile();
-  /** Below lg the profile card docks as a bottom sheet behind a "Specs" pill. */
   const [isCompact, setIsCompact] = useState(false);
   const [telemetryOpen, setTelemetryOpen] = useState(true);
   const [layersOpen, setLayersOpen] = useState(true);
   const [zen, setZen] = useState(false);
-  /** Deep-sky HUD: catalogue annotations, constellation figures, selection */
   const [starLabels, setStarLabels] = useState(true);
   const [constellations, setConstellations] = useState(false);
   const [skyId, setSkyId] = useState<string | null>(null);
@@ -158,7 +153,6 @@ export default function Dashboard() {
     }
   }, [isMobile]);
 
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const typing =
@@ -189,7 +183,6 @@ export default function Dashboard() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [intelligence, menuOpen, searchOpen, zen]);
-
 
   const now = useUtcClock();
   const info = BODIES[body];
@@ -246,9 +239,7 @@ export default function Dashboard() {
           ["ORBITAL PERIOD", `${info.telemetry.period} min`],
         ];
 
-  /** Zen / Freedom mode fades every overlay out and hands the canvas full control. */
   const hud = `transition-opacity duration-300 ${zen ? "pointer-events-none opacity-0" : "opacity-100"}`;
-  /** Below md the HUD panels dock as frosted bottom-sheets instead of side cards. */
   const panelBase = isMobile
     ? "glass hud-scroll pointer-events-auto fixed inset-x-2 bottom-2 z-50 max-h-[65vh] overflow-y-auto p-4 transition-all duration-300 ease-in-out"
     : "glass hud-scroll pointer-events-auto w-full overflow-y-auto p-4 transition-all duration-300 ease-in-out max-h-[calc(100dvh-320px)]";
@@ -260,50 +251,45 @@ export default function Dashboard() {
         : `pointer-events-none opacity-0 ${side === "left" ? "-translate-x-[120%]" : "translate-x-[120%]"}`;
 
   return (
-
-    <main className="void-bg relative h-[100dvh] w-full overflow-hidden text-foreground">
-      {/* FULL-BLEED 3D VIEWPORT */}
-      <div className="absolute inset-0">
-        <ClientOnly fallback={<ViewportFallback />}>
-          <Suspense fallback={<ViewportFallback />}>
-            <CelestialScene
-              body={body}
-              layers={layers}
-              playing={playing && (live || scrub > 0)}
-              speed={speed}
-              rideAlong={rideAlong}
-              focus={selected ? selected.id : null}
-              sunAzimuth={sunAz}
-              sunElevation={sun.el}
-              zoomRequest={zoomRequest}
-              starLabels={starLabels}
-              constellations={constellations}
-              selectedSkyId={skyId}
-              onSkySelect={(id) => {
-                setSkyId(id);
-                setSelected(null);
-              }}
-              onPinSelect={(p) => {
-                setSelected(pinAsAsset(p));
-                setSkyId(null);
-              }}
-              onAssetSelect={(a) => {
-                setSelected(a);
-                setSkyId(null);
-              }}
-              onBodyClick={() => {
-                setSelected(null);
-                setSkyId(null);
-              }}
-            />
-          </Suspense>
-        </ClientOnly>
+    <main className="relative h-[100dvh] w-full overflow-hidden bg-[#030712] text-foreground">
+      {/* 3D CANVAS VIEWPORT */}
+      <div className="absolute inset-0 w-full h-full z-0 pointer-events-auto">
+        <CelestialScene
+          body={body}
+          layers={layers}
+          playing={playing && (live || scrub > 0)}
+          speed={speed}
+          rideAlong={rideAlong}
+          focus={selected ? selected.id : null}
+          sunAzimuth={sunAz}
+          sunElevation={sun.el}
+          zoomRequest={zoomRequest}
+          starLabels={starLabels}
+          constellations={constellations}
+          selectedSkyId={skyId}
+          onSkySelect={(id) => {
+            setSkyId(id);
+            setSelected(null);
+          }}
+          onPinSelect={(p) => {
+            setSelected(pinAsAsset(p));
+            setSkyId(null);
+          }}
+          onAssetSelect={(a) => {
+            setSelected(a);
+            setSkyId(null);
+          }}
+          onBodyClick={() => {
+            setSelected(null);
+            setSkyId(null);
+          }}
+        />
       </div>
-      <div className="pointer-events-none absolute inset-0 grid-overlay" aria-hidden />
+
+      <div className="pointer-events-none absolute inset-0 grid-overlay z-10" aria-hidden />
 
       {/* FLOATING COMMAND BAR */}
       <header className={`pointer-events-none absolute inset-x-4 top-4 z-40 flex justify-center ${hud}`}>
-
         <div className="glass pointer-events-auto flex w-full max-w-[1600px] items-center gap-4 px-4 py-2.5">
           <OrbitalBrandHeader />
 
@@ -391,12 +377,10 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* DASHBOARD SUMMARY — slim collapsible status pill, expands into a floating popover */}
+      {/* DASHBOARD SUMMARY */}
       <div className={`pointer-events-none absolute inset-x-3 top-[74px] z-40 flex justify-center md:inset-x-4 md:top-[80px] ${hud}`}>
         <StatusStrip issLive={iss?.source === "live"} onOpenView={(viewKey) => setIntelligence(viewKey)} />
       </div>
-
-
 
       {/* LEFT TELEMETRY CARD */}
       <div className={`absolute left-3 top-[116px] z-30 flex w-[262px] max-w-[calc(100vw-1.5rem)] flex-col items-start gap-2 md:left-4 md:top-[124px] ${hud}`}>
@@ -422,103 +406,101 @@ export default function Dashboard() {
           aria-hidden={!telemetryOpen}
           className={`${panelBase} ${panelState(telemetryOpen, "left")}`}
         >
-
-
-        <div className="flex items-center justify-between">
-          <span className="hud-eyebrow">Target telemetry</span>
-          <span className="flex items-center gap-1.5 font-mono text-[9px] tracking-[0.14em] text-signal">
-            <i className="pulse-dot size-1.5 rounded-full bg-signal" /> LIVE
-          </span>
-        </div>
-
-        <div className="mt-3 flex items-center gap-2.5">
-          <span
-            className="size-2.5 rounded-full"
-            style={{ background: info.accent, boxShadow: `0 0 12px ${info.accent}` }}
-          />
-          <h2 className="text-[17px] font-semibold tracking-tight text-foreground">{body}</h2>
-          <span className="ml-auto font-mono text-[9px] text-muted-foreground">O-408</span>
-        </div>
-
-        <dl className="mt-3 space-y-px">
-          {telemetryRows.map(([label, value]) => (
-            <div
-              key={label}
-              className="flex items-baseline justify-between gap-3 border-t border-white/[0.06] py-2.5"
-            >
-              <dt className="hud-eyebrow">{label}</dt>
-              <dd className="font-mono text-[13px] font-medium tracking-[0.04em] text-foreground">{value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {body === "Earth" && iss && (
-          <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-            <div className="flex items-center justify-between">
-              <span className="hud-eyebrow flex items-center gap-1.5">
-                <Satellite size={11} className="text-gold" /> ISS track
-              </span>
-              <b
-                className={`font-mono text-[9px] tracking-[0.1em] ${
-                  iss.source === "live" ? "text-signal" : "text-gold"
-                }`}
-              >
-                {iss.source === "live" ? "LIVE FEED" : "SGP4"}
-              </b>
-            </div>
-            <p className="mt-2 text-[12px] leading-relaxed text-foreground/85">
-              Overflight: <b className="font-medium text-gold">{iss.region}</b>
-            </p>
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-              {iss.eclipse === "DAYLIGHT" ? (
-                <Sun size={12} className="text-gold" />
-              ) : (
-                <Moon size={12} className="text-cyan" />
-              )}
-              <span>{iss.eclipse === "DAYLIGHT" ? "Orbital daylight" : "Orbital eclipse"}</span>
-              <i
-                className={`pulse-dot ml-auto size-1.5 rounded-full ${
-                  iss.eclipse === "DAYLIGHT" ? "bg-gold" : "bg-signal"
-                }`}
-              />
-            </div>
+          <div className="flex items-center justify-between">
+            <span className="hud-eyebrow">Target telemetry</span>
+            <span className="flex items-center gap-1.5 font-mono text-[9px] tracking-[0.14em] text-signal">
+              <i className="pulse-dot size-1.5 rounded-full bg-signal" /> LIVE
+            </span>
           </div>
-        )}
 
-        <button
-          onClick={() => setRideAlong((v) => !v)}
-          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-medium transition-colors ${
-            rideAlong
-              ? "border-gold bg-gold text-primary-foreground"
-              : "border-gold/40 bg-gold/10 text-gold hover:bg-gold/20"
-          }`}
-        >
-          <Radio size={14} /> {rideAlong ? "Riding along" : "Ride along"}
-        </button>
+          <div className="mt-3 flex items-center gap-2.5">
+            <span
+              className="size-2.5 rounded-full"
+              style={{ background: info.accent, boxShadow: `0 0 12px ${info.accent}` }}
+            />
+            <h2 className="text-[17px] font-semibold tracking-tight text-foreground">{body}</h2>
+            <span className="ml-auto font-mono text-[9px] text-muted-foreground">O-408</span>
+          </div>
 
-        <div className="mt-3 border-t border-white/[0.06] pt-3">
-          <span className="hud-eyebrow">Active hardware</span>
-          <div className="mt-2 space-y-1">
-            {assets.length === 0 && (
-              <p className="text-[11px] text-muted-foreground">No operational spacecraft on station.</p>
-            )}
-            {assets.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => setSelected(a)}
-                className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] transition-colors hover:bg-white/[0.04] ${
-                  selected?.id === a.id ? "text-gold" : "text-muted-foreground hover:text-foreground"
-                }`}
+          <dl className="mt-3 space-y-px">
+            {telemetryRows.map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-baseline justify-between gap-3 border-t border-white/[0.06] py-2.5"
               >
-                <Rocket size={11} className="mt-0.5 shrink-0 text-gold" />
-                <span className="leading-snug">
-                  {a.name} <small className="text-[9px]">{OPERATOR_FLAG[a.operator]}</small>
-                </span>
-              </button>
+                <dt className="hud-eyebrow">{label}</dt>
+                <dd className="font-mono text-[13px] font-medium tracking-[0.04em] text-foreground">{value}</dd>
+              </div>
             ))}
+          </dl>
+
+          {body === "Earth" && iss && (
+            <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+              <div className="flex items-center justify-between">
+                <span className="hud-eyebrow flex items-center gap-1.5">
+                  <Satellite size={11} className="text-gold" /> ISS track
+                </span>
+                <b
+                  className={`font-mono text-[9px] tracking-[0.1em] ${
+                    iss.source === "live" ? "text-signal" : "text-gold"
+                  }`}
+                >
+                  {iss.source === "live" ? "LIVE FEED" : "SGP4"}
+                </b>
+              </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-foreground/85">
+                Overflight: <b className="font-medium text-gold">{iss.region}</b>
+              </p>
+              <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                {iss.eclipse === "DAYLIGHT" ? (
+                  <Sun size={12} className="text-gold" />
+                ) : (
+                  <Moon size={12} className="text-cyan" />
+                )}
+                <span>{iss.eclipse === "DAYLIGHT" ? "Orbital daylight" : "Orbital eclipse"}</span>
+                <i
+                  className={`pulse-dot ml-auto size-1.5 rounded-full ${
+                    iss.eclipse === "DAYLIGHT" ? "bg-gold" : "bg-signal"
+                  }`}
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setRideAlong((v) => !v)}
+            className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-medium transition-colors ${
+              rideAlong
+                ? "border-gold bg-gold text-primary-foreground"
+                : "border-gold/40 bg-gold/10 text-gold hover:bg-gold/20"
+            }`}
+          >
+            <Radio size={14} /> {rideAlong ? "Riding along" : "Ride along"}
+          </button>
+
+          <div className="mt-3 border-t border-white/[0.06] pt-3">
+            <span className="hud-eyebrow">Active hardware</span>
+            <div className="mt-2 space-y-1">
+              {assets.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">No operational spacecraft on station.</p>
+              )}
+              {assets.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => setSelected(a)}
+                  className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] transition-colors hover:bg-white/[0.04] ${
+                    selected?.id === a.id ? "text-gold" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Rocket size={11} className="mt-0.5 shrink-0 text-gold" />
+                  <span className="leading-snug">
+                    {a.name} <small className="text-[9px]">{OPERATOR_FLAG[a.operator]}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </motion.aside>
+        </motion.aside>
       </div>
 
       {/* RIGHT LAYERS + GAZETTEER CARD */}
@@ -545,100 +527,97 @@ export default function Dashboard() {
           aria-hidden={!layersOpen}
           className={`${panelBase} ${panelState(layersOpen, "right")}`}
         >
+          <div className="flex items-center justify-between">
+            <span className="hud-eyebrow">Map layers</span>
+            <span className="font-mono text-[9px] tracking-[0.14em] text-muted-foreground">
+              {Object.values(layers).filter(Boolean).length}/{LAYER_META.length}
+            </span>
+          </div>
 
-
-        <div className="flex items-center justify-between">
-          <span className="hud-eyebrow">Map layers</span>
-          <span className="font-mono text-[9px] tracking-[0.14em] text-muted-foreground">
-            {Object.values(layers).filter(Boolean).length}/{LAYER_META.length}
-          </span>
-        </div>
-
-        <div className="mt-3 space-y-1">
-          {LAYER_META.map(({ key, label, Icon }) => {
-            const on = layers[key];
-            return (
-              <button
-                key={key}
-                role="switch"
-                aria-checked={on}
-                onClick={() => setLayers((prev) => ({ ...prev, [key]: !prev[key] }))}
-                className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12px] transition-colors hover:bg-white/[0.04]"
-              >
-                <Icon size={14} className={on ? "text-gold" : "text-muted-foreground"} />
-                <span className={on ? "text-foreground" : "text-muted-foreground"}>{label}</span>
-                <span
-                  className={`ml-auto flex h-4 w-7 items-center rounded-full p-0.5 transition-colors ${
-                    on ? "bg-gold/80" : "bg-white/10"
-                  }`}
+          <div className="mt-3 space-y-1">
+            {LAYER_META.map(({ key, label, Icon }) => {
+              const on = layers[key];
+              return (
+                <button
+                  key={key}
+                  role="switch"
+                  aria-checked={on}
+                  onClick={() => setLayers((prev) => ({ ...prev, [key]: !prev[key] }))}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12px] transition-colors hover:bg-white/[0.04]"
                 >
-                  <motion.i
-                    layout
-                    transition={{ type: "spring", stiffness: 500, damping: 32 }}
-                    className={`block size-3 rounded-full bg-white shadow ${on ? "ml-auto" : ""}`}
-                  />
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                  <Icon size={14} className={on ? "text-gold" : "text-muted-foreground"} />
+                  <span className={on ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+                  <span
+                    className={`ml-auto flex h-4 w-7 items-center rounded-full p-0.5 transition-colors ${
+                      on ? "bg-gold/80" : "bg-white/10"
+                    }`}
+                  >
+                    <motion.i
+                      layout
+                      transition={{ type: "spring", stiffness: 500, damping: 32 }}
+                      className={`block size-3 rounded-full bg-white shadow ${on ? "ml-auto" : ""}`}
+                    />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-        <div className="mt-4 border-t border-white/[0.06] pt-3">
-          <button
-            onClick={() => setGazetteerOpen((v) => !v)}
-            className="flex w-full items-center justify-between"
-          >
-            <span className="hud-eyebrow">Surface gazetteer</span>
-            <ChevronDown
-              size={14}
-              className={`text-muted-foreground transition-transform ${gazetteerOpen ? "rotate-180" : ""}`}
-            />
-          </button>
-          <AnimatePresence initial={false}>
-            {gazetteerOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-2 space-y-1">
-                  {pinsFor(body).length === 0 && (
-                    <p className="text-[11px] text-muted-foreground">No mapped features for this body.</p>
-                  )}
-                  {pinsFor(body).map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setSelected(pinAsAsset(p))}
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] text-muted-foreground transition-all hover:-translate-y-px hover:bg-white/[0.05] hover:text-gold hover:shadow-lg"
-                    >
-                      <MapPin size={11} className="text-gold" />
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+          <div className="mt-4 border-t border-white/[0.06] pt-3">
+            <button
+              onClick={() => setGazetteerOpen((v) => !v)}
+              className="flex w-full items-center justify-between"
+            >
+              <span className="hud-eyebrow">Surface gazetteer</span>
+              <ChevronDown
+                size={14}
+                className={`text-muted-foreground transition-transform ${gazetteerOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            <AnimatePresence initial={false}>
+              {gazetteerOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-2 space-y-1">
+                    {pinsFor(body).length === 0 && (
+                      <p className="text-[11px] text-muted-foreground">No mapped features for this body.</p>
+                    )}
+                    {pinsFor(body).map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelected(pinAsAsset(p))}
+                        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] text-muted-foreground transition-all hover:-translate-y-px hover:bg-white/[0.05] hover:text-gold hover:shadow-lg"
+                      >
+                        <MapPin size={11} className="text-gold" />
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-        <div className="mt-4 border-t border-white/[0.06] pt-3">
-          <button
-            onClick={() => setProfileOpen(true)}
-            className="flex w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-2.5 py-2 text-[12px] text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold"
-          >
-            <Info size={14} className="text-gold" /> Body profile · {body}
-          </button>
-        </div>
+          <div className="mt-4 border-t border-white/[0.06] pt-3">
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="flex w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-2.5 py-2 text-[12px] text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold"
+            >
+              <Info size={14} className="text-gold" /> Body profile · {body}
+            </button>
+          </div>
 
-        <p className="mt-4 border-t border-white/[0.06] pt-3 text-[11px] leading-relaxed text-muted-foreground">
-          {countNote}
-        </p>
-
-      </motion.aside>
+          <p className="mt-4 border-t border-white/[0.06] pt-3 text-[11px] leading-relaxed text-muted-foreground">
+            {countNote}
+          </p>
+        </motion.aside>
       </div>
 
-      {/* BODY PROFILE — docked bottom-left on desktop, bottom sheet + Specs pill below lg */}
+      {/* BODY PROFILE */}
       {isCompact && !profileOpen && (
         <button
           onClick={() => setProfileOpen(true)}
@@ -707,10 +686,6 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-
-
-
-
       {/* SELECTED ASSET DRAWER */}
       <AnimatePresence>
         {selected && (
@@ -758,7 +733,6 @@ export default function Dashboard() {
                 ...(selected.elevation ? [["ELEVATION", selected.elevation]] : []),
                 ["LATITUDE", `${Math.abs(selected.lat).toFixed(3)}° ${selected.lat >= 0 ? "N" : "S"}`],
                 ["LONGITUDE", `${Math.abs(selected.lon).toFixed(3)}° ${selected.lon >= 0 ? "E" : "W"}`],
-
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-3 border-b border-white/[0.05] py-2">
                   <dt className="hud-eyebrow">{k}</dt>
@@ -999,7 +973,7 @@ export default function Dashboard() {
         }}
       />
 
-      {/* MOBILE / TABLET BODY SELECTOR — touch scrollable */}
+      {/* MOBILE / TABLET BODY SELECTOR */}
       <nav
         aria-label="Celestial bodies"
         className={`hud-scroll absolute inset-x-3 top-[108px] z-30 flex items-center gap-1.5 overflow-x-auto pb-1 lg:hidden ${hud}`}
@@ -1031,17 +1005,6 @@ export default function Dashboard() {
           <Minimize2 size={13} className="text-gold" /> EXIT FULLSCREEN (ESC)
         </button>
       )}
-
     </main>
-  );
-}
-
-function ViewportFallback() {
-  return (
-    <div className="flex h-full items-center justify-center">
-      <span className="animate-pulse font-mono text-[11px] tracking-[0.22em] text-muted-foreground">
-        INITIALISING PLANETARY ENGINE…
-      </span>
-    </div>
   );
 }
