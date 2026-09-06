@@ -2,7 +2,7 @@
   "version": 1,
   "asset_id": "3fc4afa4-0e00-4474-842c-e0fe54e34465",
   "project_id": "2a614215-94b2-45dd-9726-3536cdedf9f3",
-  "url": "/__l5e/assets-v1/3fc4afa4-0e00-4474-842c-e0fe54e34465/milkyway.jpg",
+  "url": "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/starfield.jpg",
   "r2_key": "a/v1/2a614215-94b2-45dd-9726-3536cdedf9f3/3fc4afa4-0e00-4474-842c-e0fe54e34465/milkyway.jpg",
   "original_filename": "milkyway.jpg",
   "size": 2333454,
